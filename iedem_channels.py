@@ -2,7 +2,7 @@ import requests
 from os import remove
 
 
-url = 'http://c0216f381ef0.yourlistbest.net/playlists/uplist/e379294660ff4ff6ea21eefd6a2ae8df/playlist.m3u8'
+url = 'http://iedem.tv/playlists/uplist/your_id/playlist.m3u8'
 myfile = requests.get(url)
 open('temp.m3u8', 'wb').write(myfile.content)
 json_list = []
