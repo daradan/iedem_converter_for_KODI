@@ -1,60 +1,64 @@
-import requests
-from os import remove
-from datetime import datetime
+from requests import get
+
 
 # Ниже необходимо указать ссылку на свой плейлист из ЛК iedem
 url = 'http://iedem.tv/playlists/uplist/your_id/playlist.m3u8'
-myfile = requests.get(url)
-open('temp.m3u8', 'wb').write(myfile.content)
+playlist = get(url)
+
 json_list = []
-temp_lst = []
-favorites_lst = []
-temp_lst1 = []
-temp = 0
-with open('temp.m3u8', 'r', encoding='utf-8') as f:
-    temp_dict = {}
-    for i in f:
-        if '#EXTINF' in i:
-            temp_dict['tvg-name'] = i.split(',')[1].strip()
-            temp_dict['tvg-rec'] = i.split(',')[0][10:]
-            temp_dict['tvg-logo'] = 'https://tv.sdckz.com/logo/' + temp_dict['tvg-name'].replace(' ', '') + '.png'
-        elif '#EXTGRP' in i:
-            temp_dict['group-title'] = i.replace('#EXTGRP:', '').strip()
-        elif 'http' in i:
-            temp_dict['link'] = i.strip()
-            json_list.append(temp_dict)
-            temp_dict = {}
-remove('temp.m3u8')
-with open('temp.m3u8', 'w', encoding='utf-8') as f:
-    f.write('#EXTM3U x-tvg-url="http://epg.it999.ru/epg.xml.gz"\n')
-    for d in json_list:
-        # Ниже во второй квадратной скобке указываем группы через запятую, которые необходимо исключить
-        if d['group-title'] not in ['Հայկական', 'українські', 'беларускія', 'azərbaycan', 'ქართული', 'точик', 'moldovenească', 'türk', 'o\'zbek', 'ישראלי']:
-            f.write(f'''#EXTINF:0 group-title="{d['group-title']}" tvg-name="{d['tvg-name']}" tvg-logo="{d['tvg-logo']}" {d['tvg-rec']},{d['tvg-name']}''' + '\n')
-            f.write(d['link'] + '\n')
-with open('temp.m3u8', 'r', encoding='utf-8') as f:
-    for k in f:
-        temp_lst.append(k)
-with open('favorites.txt', 'r', encoding='utf-8') as f:
-    for k in f:
-        k = k.strip()
-        favorites_lst.append(k)
-while temp < len(favorites_lst):
-    with open('temp.m3u8', 'r', encoding='utf-8') as f:
-        for k in f:
-            if favorites_lst[temp] in k:
-                temp_lst1.append(k)
-                temp_lst.remove(k)
-                j = next(f)
-                temp_lst.remove(j)
-                temp_lst1.append(j)
-        temp += 1
-dtime = datetime.now().strftime('%Y%m%d%H%M%S')
-with open(f'iedemtv_{dtime}.m3u8', 'w', encoding='utf-8') as f:
-    temp_lst.remove('#EXTM3U x-tvg-url="http://epg.it999.ru/epg.xml.gz"\n')
-    f.write('#EXTM3U x-tvg-url="http://epg.it999.ru/epg.xml.gz"\n')
-    for k in temp_lst1:
-        f.write(k)
-    for k in temp_lst:
-        f.write(k)
-remove('temp.m3u8')
+playlist_list = []
+temp_dict = {}
+group_edited_list = []
+favorites_list = []
+num_on_list = []
+temp_num = 0
+
+playlist.encoding = 'utf-8'
+for playlist_line in playlist.text.split('\n'):
+    playlist_list.append(playlist_line.strip('\r'))
+
+for playlist_line_2 in playlist_list:
+    if '#EXTINF' in playlist_line_2:
+        temp_dict['tvg-name'] = playlist_line_2.split(',')[1].strip()
+        temp_dict['tvg-rec'] = playlist_line_2.split(',')[0][10:]
+        temp_dict['tvg-logo'] = 'https://tv.sdckz.com/logo/' + temp_dict['tvg-name'].replace(' ', '') + '.png'
+    elif '#EXTGRP' in playlist_line_2:
+        temp_dict['group-title'] = playlist_line_2.replace('#EXTGRP:', '').strip()
+    elif 'http' in playlist_line_2:
+        temp_dict['link'] = playlist_line_2.strip()
+        json_list.append(temp_dict)
+        temp_dict = {}
+
+for playlist_line_3 in json_list:
+    # Ниже во второй квадратной скобке указываем группы через запятую, которые необходимо исключить
+    if playlist_line_3['group-title'] not in ['Новый сайт - edemtv.me', 'Հայկական', 'українські', 'беларускія',\
+                                              'azərbaycan', 'ქართული', 'точик', 'moldovenească', 'türk', 'o\'zbek',\
+                                              'ישראלי']:
+        group_edited_list.append(f'''#EXTINF:0 group-title="{playlist_line_3['group-title']}"\
+ tvg-name="{playlist_line_3['tvg-name']}" tvg-logo="{playlist_line_3['tvg-logo']}"\
+ {playlist_line_3['tvg-rec']},{playlist_line_3['tvg-name']}''')
+        group_edited_list.append(playlist_line_3['link'])
+
+with open('favorites.txt', 'r', encoding='utf-8') as fav_file:
+    for fav_channel in fav_file:
+        favorites_list.append(fav_channel.strip())
+
+while temp_num < len(favorites_list):
+    for num, val in enumerate(group_edited_list):
+        if favorites_list[temp_num] in val:
+            num_on_list.append(num)
+            num_on_list.append(num + 1)
+    temp_num += 1
+
+pre_finish_fav_list = ['#EXTM3U x-tvg-url="http://epg.it999.ru/epg.xml.gz"']
+for k in num_on_list:
+    pre_finish_fav_list.append(group_edited_list[k])
+
+for i in sorted(num_on_list, reverse=True):
+    del group_edited_list[i]
+del group_edited_list[0]
+finish_fav_list_both = pre_finish_fav_list + group_edited_list
+
+with open('pl.m3u8', 'w', encoding='utf-8') as fin_file:
+    for j in finish_fav_list_both:
+        fin_file.write(j + '\n')
