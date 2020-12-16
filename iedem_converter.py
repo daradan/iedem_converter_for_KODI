@@ -46,8 +46,9 @@ with open('favorites.txt', 'r', encoding='utf-8') as fav_file:
 while temp_num < len(favorites_list):
     for num, val in enumerate(group_edited_list):
         if favorites_list[temp_num] in val:
-            num_on_list.append(num)
-            num_on_list.append(num + 1)
+            if favorites_list[temp_num] == val.split('"')[3]:
+                num_on_list.append(num)
+                num_on_list.append(num + 1)
     temp_num += 1
 
 pre_finish_fav_list = ['#EXTM3U x-tvg-url="http://epg.it999.ru/epg.xml.gz"']
